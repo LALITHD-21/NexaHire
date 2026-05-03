@@ -2,10 +2,17 @@ __pycache__
 *.pyc
 venv/
 .venv/
+.python_packages/
+.server_packages/
 .env
 .env.local
+.env.production
 .git
 .gitignore
 *.md
 node_modules/
 .pytest_cache/
+NexaHire-AI-lite.zip
+*.log
+assets/logo.png
+assets/talentsync-mark.svg

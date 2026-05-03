@@ -96,7 +96,7 @@
         <span class="toggle-track"><span class="toggle-thumb"></span></span>
         <span id="theme-label">Light</span>
       </button>
-      <div class="system-pill"><span class="status-dot"></span><span>AI stack ready</span></div>
+      <div class="system-pill" id="global-ai-status"><span class="status-dot"></span><span id="global-ai-status-text">AI stack ready</span></div>
     </div>
   </header>
 
@@ -145,6 +145,41 @@
       <div class="metric-card"><span>AI modules</span><strong>8</strong><small>plus Google workflow hub</small></div>
       <div class="metric-card"><span>Bias tolerance</span><strong>0</strong><small>inclusive review loop</small></div>
     </div>
+
+    <section class="ai-settings-panel" id="ai-settings-panel">
+      <div class="section-heading">
+        <div>
+          <span class="eyebrow gradient-eyebrow">AI model access</span>
+          <h3>Choose provider, model, and key</h3>
+        </div>
+        <div class="ai-status-card" id="ai-status-card">
+          <span class="status-dot"></span>
+          <div>
+            <strong id="ai-status-title">Not verified</strong>
+            <small id="ai-status-detail">OpenAI server fallback is available when configured.</small>
+          </div>
+        </div>
+      </div>
+      <div class="ai-settings-grid">
+        <div class="ai-provider-switch" role="group" aria-label="AI provider">
+          <button class="active" type="button" data-ai-provider="openai">OpenAI</button>
+          <button type="button" data-ai-provider="gemini">Gemini</button>
+        </div>
+        <div class="form-group">
+          <label for="ai-model-select">AI Model</label>
+          <select id="ai-model-select"></select>
+        </div>
+        <div class="form-group ai-key-field">
+          <label for="ai-api-key">API Key</label>
+          <input type="password" id="ai-api-key" placeholder="Paste API key for selected provider" autocomplete="off">
+        </div>
+        <div class="ai-settings-actions">
+          <button class="btn btn-primary" type="button" id="ai-verify-btn" onclick="verifyAISettings()">Verify Status</button>
+          <button class="btn btn-secondary" type="button" onclick="saveAISettings()">Save Key</button>
+          <button class="btn btn-ghost" type="button" onclick="clearAISettings()">Clear</button>
+        </div>
+      </div>
+    </section>
 
     <div class="profile-studio" id="profile-studio">
       <div class="profile-preview-card">

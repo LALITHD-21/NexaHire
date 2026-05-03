@@ -1,11 +1,27 @@
-const API = window.location.protocol === "file:" || window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
+const API = window.location.protocol === "file:"
   ? "http://localhost:8000"
   : "";
 
 const ACTIVITY_KEY = "nexahire.activity.v1";
 const THEME_KEY = "nexahire.theme.v1";
 const PROFILE_KEY = "nexahire.profile.v1";
+const AI_SETTINGS_KEY = "nexahire.ai.settings.v1";
 let lastResumeFileName = "";
+
+const aiModelOptions = {
+  openai: [
+    { value: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
+    { value: "gpt-4.1", label: "GPT-4.1" },
+    { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+    { value: "gpt-4o", label: "GPT-4o" }
+  ],
+  gemini: [
+    { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+    { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+    { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash-Lite" }
+  ]
+};
 
 const sampleData = {
   match: {
@@ -104,6 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initNavigation();
   initCommandSearch();
   initThemeToggle();
+  initAISettings();
   initProfileBuilder();
   loadProfile();
   initResumeUpload();
@@ -255,6 +272,190 @@ function initThemeToggle() {
     applyTheme(nextTheme);
     toast(`${nextTheme === "dark" ? "Dark" : "Light"} theme enabled.`, "success");
   });
+}
+
+function getAISettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(AI_SETTINGS_KEY) || "{}");
+    const provider = saved.provider === "gemini" ? "gemini" : "openai";
+    const fallbackModel = aiModelOptions[provider][0].value;
+    return {
+      provider,
+      model: saved.model || fallbackModel,
+      apiKey: saved.apiKey || "",
+      verified: Boolean(saved.verified),
+      verifiedAt: saved.verifiedAt || ""
+    };
+  } catch (error) {
+    return { provider: "openai", model: "gpt-4.1-mini", apiKey: "", verified: false, verifiedAt: "" };
+  }
+}
+
+function saveAISettingsData(settings) {
+  localStorage.setItem(AI_SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function getAIHeaders() {
+  const settings = getAISettings();
+  const headers = {
+    "X-AI-Provider": settings.provider,
+    "X-AI-Model": settings.model
+  };
+  if (settings.apiKey) headers["X-AI-Key"] = settings.apiKey;
+  return headers;
+}
+
+function syncAIModelOptions(provider, selectedModel = "") {
+  const select = document.getElementById("ai-model-select");
+  if (!select) return;
+  const options = aiModelOptions[provider] || aiModelOptions.openai;
+  select.innerHTML = options.map(model => `<option value="${escapeHtml(model.value)}">${escapeHtml(model.label)}</option>`).join("");
+  select.value = options.some(model => model.value === selectedModel) ? selectedModel : options[0].value;
+}
+
+function updateAIProviderButtons(provider) {
+  document.querySelectorAll("[data-ai-provider]").forEach(button => {
+    button.classList.toggle("active", button.dataset.aiProvider === provider);
+  });
+}
+
+function setAIStatus(title, detail, state = "info") {
+  const card = document.getElementById("ai-status-card");
+  const titleEl = document.getElementById("ai-status-title");
+  const detailEl = document.getElementById("ai-status-detail");
+  const global = document.getElementById("global-ai-status");
+  const globalText = document.getElementById("global-ai-status-text");
+
+  if (titleEl) titleEl.textContent = title;
+  if (detailEl) detailEl.textContent = detail;
+  if (card) {
+    card.classList.toggle("ready", state === "ready");
+    card.classList.toggle("error", state === "error");
+  }
+  if (global) {
+    global.classList.toggle("error", state === "error");
+    global.classList.toggle("ready", state === "ready");
+  }
+  if (globalText) globalText.textContent = title;
+}
+
+function initAISettings() {
+  const settings = getAISettings();
+  const keyInput = document.getElementById("ai-api-key");
+  const select = document.getElementById("ai-model-select");
+
+  syncAIModelOptions(settings.provider, settings.model);
+  updateAIProviderButtons(settings.provider);
+  if (keyInput) keyInput.value = settings.apiKey;
+
+  document.querySelectorAll("[data-ai-provider]").forEach(button => {
+    button.addEventListener("click", () => {
+      const provider = button.dataset.aiProvider === "gemini" ? "gemini" : "openai";
+      const nextModel = aiModelOptions[provider][0].value;
+      updateAIProviderButtons(provider);
+      syncAIModelOptions(provider, nextModel);
+      const current = getAISettings();
+      saveAISettingsData({ ...current, provider, model: nextModel, verified: false, verifiedAt: "" });
+      setAIStatus("Not verified", `${provider === "gemini" ? "Gemini" : "OpenAI"} key is ready to check.`, "info");
+    });
+  });
+
+  if (select) {
+    select.addEventListener("change", () => {
+      const current = getAISettings();
+      saveAISettingsData({ ...current, model: select.value, verified: false, verifiedAt: "" });
+      setAIStatus("Not verified", `${select.value} selected.`, "info");
+    });
+  }
+
+  if (settings.verified) {
+    setAIStatus("Model verified", `${settings.provider.toUpperCase()} - ${settings.model}`, "ready");
+  } else {
+    refreshAIHealth();
+  }
+}
+
+function readAISettingsForm() {
+  const activeProvider = document.querySelector("[data-ai-provider].active");
+  const select = document.getElementById("ai-model-select");
+  const keyInput = document.getElementById("ai-api-key");
+  const provider = activeProvider && activeProvider.dataset.aiProvider === "gemini" ? "gemini" : "openai";
+  return {
+    provider,
+    model: select ? select.value : aiModelOptions[provider][0].value,
+    apiKey: keyInput ? keyInput.value.trim() : "",
+    verified: false,
+    verifiedAt: ""
+  };
+}
+
+function saveAISettings() {
+  const settings = readAISettingsForm();
+  saveAISettingsData(settings);
+  setAIStatus("Saved, not verified", `${settings.provider.toUpperCase()} - ${settings.model}`, "info");
+  toast("AI settings saved.", "success");
+}
+
+function clearAISettings() {
+  localStorage.removeItem(AI_SETTINGS_KEY);
+  const keyInput = document.getElementById("ai-api-key");
+  if (keyInput) keyInput.value = "";
+  syncAIModelOptions("openai", "gpt-4.1-mini");
+  updateAIProviderButtons("openai");
+  setAIStatus("Cleared", "Using server fallback when configured.", "info");
+  toast("AI key cleared from this browser.", "info");
+}
+
+async function refreshAIHealth() {
+  try {
+    const response = await fetch(API + "/health");
+    const data = await response.json();
+    if (data.api_key_configured) {
+      setAIStatus("Server key ready", `${String(data.provider || "openai").toUpperCase()} - ${data.model || "default"}`, "ready");
+    } else {
+      setAIStatus("Not verified", "Add an OpenAI or Gemini key to run AI modules.", "info");
+    }
+  } catch (error) {
+    setAIStatus("Status unavailable", "Backend health check failed.", "error");
+  }
+}
+
+async function verifyAISettings() {
+  const settings = readAISettingsForm();
+  saveAISettingsData(settings);
+  const restore = setButtonLoading(document.getElementById("ai-verify-btn"), "Verifying");
+
+  try {
+    const response = await fetch(API + "/api/ai/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAIHeaders() },
+      body: JSON.stringify({
+        provider: settings.provider,
+        model: settings.model,
+        api_key: settings.apiKey
+      })
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(error.detail || "Verification failed");
+    }
+    const data = await response.json();
+    const verified = {
+      ...settings,
+      provider: data.provider || settings.provider,
+      model: data.model || settings.model,
+      verified: true,
+      verifiedAt: data.verified_at || new Date().toISOString()
+    };
+    saveAISettingsData(verified);
+    setAIStatus("Model verified", `${verified.provider.toUpperCase()} - ${verified.model}`, "ready");
+    toast("AI model verified.", "success");
+  } catch (error) {
+    setAIStatus("Verification failed", error.message, "error");
+    toast(error.message, "error");
+  } finally {
+    restore();
+  }
 }
 
 function initProfileBuilder() {
@@ -536,10 +737,12 @@ function showJobToast(job) {
 async function apiCall(endpoint, body, isFormData = false) {
   try {
     const options = { method: "POST" };
+    const aiHeaders = getAIHeaders();
     if (isFormData) {
+      options.headers = aiHeaders;
       options.body = body;
     } else {
-      options.headers = { "Content-Type": "application/json" };
+      options.headers = { "Content-Type": "application/json", ...aiHeaders };
       options.body = JSON.stringify(body);
     }
 

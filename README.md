@@ -1,154 +1,169 @@
 # NexaHire AI
 
-![NexaHire AI](assets/nexahire-mark.svg)
+<p align="center">
+  <img src="assets/nexahire-mark.svg" alt="NexaHire AI logo" width="112">
+</p>
 
-> Talent Intelligence OS for faster, clearer, and fairer recruiting decisions.
+<h3 align="center">Talent Intelligence OS for explainable recruiting intelligence</h3>
 
-NexaHire AI is a polished recruiting command center that brings resume intelligence, semantic job matching, AI interviewing, bias review, career coaching, Google Workspace handoffs, live role signals, and recruiter outreach into one focused workflow.
+<p align="center">
+  Analyze resumes, match candidates, run AI interviews, review bias, coach careers, create outreach, and hand off recruiter work into a Google-ready command center.
+</p>
 
-It is designed as a practical AI product, not a static demo: users can upload resumes, generate explainable scoring, inspect candidate fit through graphs and KPIs, save a recruiter profile, open company career links, and move candidate insights into matching and outreach flows.
+<p align="center">
+  <a href="#quick-start"><img alt="Quick start" src="https://img.shields.io/badge/Start-Local_Run-2E7D32?style=for-the-badge"></a>
+  <a href="#deploy-to-google-cloud-run"><img alt="GCP Cloud Run" src="https://img.shields.io/badge/Deploy-Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white"></a>
+  <a href="#ai-provider-setup"><img alt="OpenAI and Gemini" src="https://img.shields.io/badge/AI-OpenAI_%2B_Gemini-111111?style=for-the-badge&logo=openai&logoColor=white"></a>
+  <a href="#tech-stack"><img alt="FastAPI" src="https://img.shields.io/badge/API-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white"></a>
+  <a href="#docker"><img alt="Docker ready" src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white"></a>
+</p>
 
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](#tech-stack)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=for-the-badge&logo=fastapi&logoColor=white)](#tech-stack)
-[![OpenAI](https://img.shields.io/badge/OpenAI-ChatGPT-111111?style=for-the-badge&logo=openai&logoColor=white)](#ai-backend)
-[![Vanilla JS](https://img.shields.io/badge/Frontend-HTML_CSS_JS-F7DF1E?style=for-the-badge&logo=javascript&logoColor=111111)](#tech-stack)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](#docker)
-
----
-
-## Product Vision
-
-Recruiting teams often lose time and quality because their tools are scattered:
-
-- Resumes are reviewed manually or with shallow keyword filters.
-- Job matching is difficult to explain to stakeholders.
-- Interview feedback is inconsistent across candidates.
-- Job descriptions can contain biased or exclusionary language.
-- Candidate outreach takes time and often lacks personalization.
-- Recruiter workflows jump between Gmail, Calendar, Meet, Drive, Sheets, and job boards.
-
-NexaHire AI turns that fragmented workflow into a single command center.
-
-The goal is simple: help recruiters and candidates make better hiring decisions with evidence, fairness, and speed.
+<p align="center">
+  <img src="assets/bg.png" alt="NexaHire AI command center preview" width="920">
+</p>
 
 ---
 
-## Highlights
+## Overview
 
-- Premium launch intro inspired by modern product reveal screens.
-- Light and dark theme toggle with persistent preference.
-- Recruiter profile setup with photo upload, profile saving, sidebar sync, and clean hide-after-save behavior.
-- Resume analyzer with AI score, radar graph, KPI cards, score breakdown bars, graph insights, recruiter notes, strengths, weaknesses, summary, and recommendations.
-- Semantic candidate-job matching that explains fit, gaps, confidence, and hiring suggestion.
-- Adaptive AI interviewer with scoring, feedback, final assessment, metrics, weaknesses, and improvement plan.
-- Bias detector for job descriptions with issue highlights and inclusive rewrite.
-- Career coach with readiness score, learning roadmap, courses, projects, and motivation.
-- Outreach generator for email, LinkedIn/InMail, and follow-up copy.
-- Live requirements panel with official company career links.
-- Google services panel for Gmail, Calendar, Meet, Drive, Sheets, and Google Careers.
-- FastAPI backend with OpenAI ChatGPT integration.
-- Docker-ready deployment setup.
+NexaHire AI is a polished recruiting command center built for resume intelligence, candidate-job matching, interview practice, bias review, Google Workspace handoffs, career coaching, and personalized outreach.
+
+The app is designed to feel like a real AI product, not a static demo. Recruiters can upload resumes, view graph-based scoring, save a profile, inspect live job requirement cards, open official company career pages, and choose their preferred AI provider directly from the interface.
+
+The current backend supports:
+
+- OpenAI Chat Completions.
+- Gemini Generate Content API.
+- Per-user API keys entered from the browser.
+- Server-side API keys from `.env`, Docker, or Google Cloud Secret Manager.
+- PDF, DOCX, TXT, and DOC resume parsing.
+- Same-origin API routing for simple GCP deployment.
 
 ---
 
-## Screens And Core Experience
+## Product Experience
 
 ### Command Center
 
-The home page acts as the operating system for recruiting work:
+NexaHire opens into a professional talent intelligence dashboard with:
 
-- Hero summary for explainable recruiting intelligence.
-- Live fit model preview.
-- Metric cards for match accuracy, response time, AI modules, and bias tolerance.
-- Recruiter profile setup and saved profile state.
-- Smart workflow steps from analysis to outreach.
-- Workspace memory for recent AI actions.
-- Live role cards with company logos and career links.
-- Google Workspace action cards.
+- Cinematic launch loading screen.
+- Light and dark theme toggle.
+- Recruiter profile builder with photo upload.
+- Saved profile preview that hides the edit form after save.
+- AI model access panel with OpenAI/Gemini choice.
+- Live model verification status.
+- Command navigation for Home, Analyze, Match, Interview, Bias, Coach, and Outreach.
+- Live requirements section with company logos and official career links.
+- Google-ready recruiter actions for Gmail, Calendar, Meet, Drive, Sheets, and Google Careers.
 
 ### Resume Intelligence
 
-Upload a resume and NexaHire returns a detailed analysis:
+The resume analyzer produces:
 
-- Candidate score.
-- Experience level.
-- Career trajectory.
-- Technical skills, soft skills, and tools.
-- Domain expertise.
-- Resume radar graph.
-- Executive signal KPIs.
-- Score breakdown bars:
-  - Skills depth
-  - Project impact
-  - Experience fit
-  - Education
-  - Communication
-  - Growth signal
+- Overall candidate score.
+- Resume scoring graph.
+- Skills depth.
+- Project impact.
+- Experience alignment.
+- Education strength.
+- Communication signal.
+- Growth signal.
 - Strengths and weaknesses.
-- Summary and recommendations.
-- Recruiter notes for screening.
+- Domain expertise.
+- Recruiter notes.
+- Recommendations for interview validation.
 
 ### Smart Matching
 
-Paste a resume and job description to receive:
+The matching engine compares resume text with a job description and returns:
 
 - Match score.
-- Confidence value.
+- Confidence.
 - Overall fit.
 - Skills match.
 - Experience alignment.
 - Culture fit.
 - Growth potential.
-- Skill-by-skill breakdown.
-- Key strengths.
-- Skill gaps.
-- Hiring suggestion.
-- Detailed explanation.
+- Skill-by-skill explanation.
+- Gaps and hiring suggestion.
 
-### AI Interviewer
+### Interview, Bias, Coach, Outreach
 
-Run a structured candidate interview:
+NexaHire also includes:
 
-- Role-specific questions.
-- Difficulty selection.
-- Adaptive follow-up behavior.
-- Feedback per answer.
-- Final score.
-- Metrics for technical ability, communication, and problem solving.
-- Weaknesses and improvement plan.
+- AI Interviewer: role-specific interview questions, scoring, feedback, and improvement plan.
+- Bias Detector: biased language detection, severity score, issue list, and inclusive rewrite.
+- Career Coach: readiness score, roadmap, courses, project ideas, and timeline.
+- Smart Outreach: email, LinkedIn/InMail, and follow-up message generation.
 
-### Bias Review
+---
 
-Analyze job descriptions for language that may reduce fairness:
+## AI Provider Setup
 
-- Bias score.
-- Bias level.
-- Specific issue list.
-- Highlighted original text.
-- Inclusive rewritten description.
-- Summary for recruiters.
+NexaHire now includes an in-app AI settings section so each user can connect their own model access.
 
-### Career Coach
+### In-App Flow
 
-Create a role-readiness roadmap:
+1. Open the app.
+2. Go to the AI model access panel.
+3. Choose `OpenAI` or `Gemini`.
+4. Select a model.
+5. Paste your API key.
+6. Click `Verify`.
+7. Save the configuration.
 
-- Readiness score.
-- Skill gap analysis.
-- Learning phases.
-- Recommended courses.
-- Project ideas.
-- Timeline.
-- Motivation.
+The app will show a live status for the selected provider and model.
 
-### Smart Outreach
+### Supported UI Model Choices
 
-Generate recruiter-ready messaging:
+| Provider | Models |
+| --- | --- |
+| OpenAI | `gpt-4.1-mini`, `gpt-4.1`, `gpt-4o-mini`, `gpt-4o` |
+| Gemini | `gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-2.0-flash`, `gemini-2.0-flash-lite` |
 
-- Subject line.
-- Email message.
-- LinkedIn version.
-- Follow-up message.
-- Personalization score.
+### Server Fallback
+
+If a user does not enter a browser API key, the backend uses the server environment:
+
+```env
+AI_PROVIDER=openai
+OPENAI_API_KEY=your_openai_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+MODEL=gpt-4.1-mini
+GEMINI_MODEL=gemini-2.0-flash
+MAX_TOKENS=2000
+CACHE_TTL=3600
+```
+
+Do not commit real API keys. Keep them in `.env` locally and Secret Manager on GCP.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+  User["Recruiter or candidate"] --> UI["NexaHire web UI"]
+  UI --> Settings["AI provider settings"]
+  UI --> API["FastAPI backend"]
+  Settings --> LocalStorage["Browser local storage"]
+  API --> Parser["Resume parser"]
+  API --> Cache["In-memory response cache"]
+  API --> OpenAI["OpenAI API"]
+  API --> Gemini["Gemini API"]
+  API --> Static["Static frontend files"]
+  UI --> GoogleLinks["Google Workspace and careers links"]
+```
+
+### Runtime Flow
+
+1. User uploads a resume or submits a workflow form.
+2. Frontend attaches selected AI provider, model, and optional browser API key.
+3. FastAPI resolves the request-level AI config.
+4. Backend parses files and builds structured prompts.
+5. OpenAI or Gemini returns structured JSON.
+6. Frontend renders scores, graphs, notes, recommendations, and actions.
 
 ---
 
@@ -157,29 +172,14 @@ Generate recruiter-ready messaging:
 | Layer | Technology |
 | --- | --- |
 | Frontend | HTML5, CSS3, Vanilla JavaScript |
-| UI Style | Responsive command-center layout, light/dark themes, cinematic loader |
-| Backend | Python, FastAPI |
-| AI Provider | OpenAI Chat Completions |
-| Default Model | `gpt-4.1-mini` |
+| Styling | Responsive light/dark command center UI |
+| Backend | Python 3.10+, FastAPI |
+| AI | OpenAI Chat Completions, Gemini Generate Content |
 | File Parsing | PyPDF2, python-docx |
 | Runtime | Uvicorn |
-| Deployment | Docker, Docker Compose, Cloud Run compatible |
-
----
-
-## AI Backend
-
-The backend uses the OpenAI Chat Completions API through a small direct HTTP client in `backend/app.py`.
-
-Default model:
-
-```env
-MODEL=gpt-4.1-mini
-```
-
-The model can be changed from `.env` without changing frontend code.
-
-Never place API keys in frontend files. NexaHire reads secrets from `.env`, which is ignored by git.
+| Container | Docker |
+| Cloud Target | Google Cloud Run |
+| Secrets | `.env` locally, Secret Manager in production |
 
 ---
 
@@ -187,21 +187,23 @@ Never place API keys in frontend files. NexaHire reads secrets from `.env`, whic
 
 ```text
 NexaHire-AI/
-├── assets/
-│   ├── bg.png
-│   ├── logo.png
-│   └── nexahire-mark.svg
-├── backend/
-│   └── app.py
-├── index.html
-├── style.css
-├── script.js
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-├── .env.example
-├── .gitignore
-└── README.md
+|-- assets/
+|   |-- bg.png
+|   |-- nexahire-mark.svg
+|   `-- talentsync-mark.svg
+|-- backend/
+|   `-- app.py
+|-- index.html
+|-- style.css
+|-- script.js
+|-- requirements.txt
+|-- Dockerfile
+|-- docker-compose.yml
+|-- .env.example
+|-- .gcloudignore
+|-- .dockerignore
+|-- .gitignore
+`-- README.md
 ```
 
 ---
@@ -210,52 +212,47 @@ NexaHire-AI/
 
 ### 1. Requirements
 
-- Python 3.10 or newer
-- OpenAI API key
-- Modern browser
+- Python 3.10 or newer.
+- Modern browser.
+- OpenAI API key or Gemini API key.
 
-### 2. Install dependencies
+### 2. Create Environment
 
-```bash
+Windows PowerShell:
+
+```powershell
 python -m venv .venv
-```
-
-Windows:
-
-```bash
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+copy .env.example .env
 ```
 
 macOS or Linux:
 
 ```bash
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
-
-### 3. Configure environment
-
-```bash
-copy .env.example .env
-```
-
-On macOS or Linux:
-
-```bash
 cp .env.example .env
 ```
+
+### 3. Add API Keys
 
 Edit `.env`:
 
 ```env
+AI_PROVIDER=openai
 OPENAI_API_KEY=your_openai_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 MODEL=gpt-4.1-mini
-MAX_TOKENS=2400
+GEMINI_MODEL=gemini-2.0-flash
+MAX_TOKENS=2000
 CACHE_TTL=3600
 ```
 
-### 4. Run locally
+You can also leave `.env` without keys and enter the API key inside the app's AI model access panel.
+
+### 4. Run Locally
 
 ```bash
 python backend/app.py
@@ -267,21 +264,214 @@ Open:
 http://127.0.0.1:8000/
 ```
 
+### 5. Check Health
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+Example response:
+
+```json
+{
+  "status": "healthy",
+  "provider": "openai",
+  "model": "gpt-4.1-mini",
+  "api_key_configured": true,
+  "providers": {
+    "openai": true,
+    "gemini": false
+  },
+  "pdf": true,
+  "docx": true
+}
+```
+
 ---
 
 ## Docker
 
-Run with Docker Compose:
+Build and run with Docker Compose:
 
 ```bash
 docker compose up --build
 ```
 
-Then open:
+Open:
 
 ```text
 http://127.0.0.1:8000/
 ```
+
+Run a production-style container:
+
+```bash
+docker build -t nexahire-ai .
+docker run --env-file .env -p 8080:8080 nexahire-ai
+```
+
+Open:
+
+```text
+http://127.0.0.1:8080/
+```
+
+---
+
+## Deploy To Google Cloud Run
+
+Cloud Run is the recommended Google Cloud Platform deployment target because NexaHire is a containerized HTTP app with a FastAPI backend and static frontend.
+
+### Deployment Checklist
+
+- Google Cloud project created.
+- Billing enabled.
+- `gcloud` CLI installed.
+- Cloud Run, Cloud Build, Artifact Registry, and Secret Manager APIs enabled.
+- OpenAI and/or Gemini key available.
+- No real keys committed to git.
+
+### 1. Authenticate And Select Project
+
+```bash
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+```
+
+Set a region. `asia-south1` is a good default for India:
+
+```bash
+gcloud config set run/region asia-south1
+```
+
+### 2. Enable GCP Services
+
+```bash
+gcloud services enable run.googleapis.com
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+gcloud services enable secretmanager.googleapis.com
+```
+
+### 3. Create Secrets
+
+Create an OpenAI secret:
+
+```bash
+printf "YOUR_OPENAI_API_KEY" | gcloud secrets create openai-api-key --data-file=-
+```
+
+Create a Gemini secret:
+
+```bash
+printf "YOUR_GEMINI_API_KEY" | gcloud secrets create gemini-api-key --data-file=-
+```
+
+If a secret already exists, add a new version:
+
+```bash
+printf "YOUR_OPENAI_API_KEY" | gcloud secrets versions add openai-api-key --data-file=-
+printf "YOUR_GEMINI_API_KEY" | gcloud secrets versions add gemini-api-key --data-file=-
+```
+
+Windows PowerShell alternative:
+
+```powershell
+"YOUR_OPENAI_API_KEY" | gcloud secrets create openai-api-key --data-file=-
+"YOUR_GEMINI_API_KEY" | gcloud secrets create gemini-api-key --data-file=-
+```
+
+### 4. Deploy From Source
+
+This is the simplest Cloud Run deployment:
+
+```bash
+gcloud run deploy nexahire-ai \
+  --source . \
+  --region asia-south1 \
+  --allow-unauthenticated \
+  --set-secrets OPENAI_API_KEY=openai-api-key:latest,GEMINI_API_KEY=gemini-api-key:latest \
+  --set-env-vars AI_PROVIDER=openai,MODEL=gpt-4.1-mini,GEMINI_MODEL=gemini-2.0-flash,MAX_TOKENS=2000,CACHE_TTL=3600 \
+  --memory 1Gi \
+  --cpu 1 \
+  --timeout 300
+```
+
+Cloud Run will build the Dockerfile, deploy the service, and print the public service URL.
+
+### 5. Verify Deployment
+
+Get the service URL:
+
+```bash
+gcloud run services describe nexahire-ai \
+  --region asia-south1 \
+  --format="value(status.url)"
+```
+
+Check health:
+
+```bash
+curl "https://YOUR_CLOUD_RUN_URL/health"
+```
+
+Expected response shape:
+
+```json
+{
+  "status": "healthy",
+  "provider": "openai",
+  "model": "gpt-4.1-mini",
+  "api_key_configured": true,
+  "providers": {
+    "openai": true,
+    "gemini": true
+  }
+}
+```
+
+### 6. Read Cloud Run Logs
+
+```bash
+gcloud run services logs read nexahire-ai \
+  --region asia-south1 \
+  --limit 100
+```
+
+Stream recent logs while testing:
+
+```bash
+gcloud beta run services logs tail nexahire-ai \
+  --region asia-south1
+```
+
+### 7. Update Environment Variables
+
+Switch default provider to Gemini:
+
+```bash
+gcloud run services update nexahire-ai \
+  --region asia-south1 \
+  --update-env-vars AI_PROVIDER=gemini,GEMINI_MODEL=gemini-2.0-flash
+```
+
+Switch default provider back to OpenAI:
+
+```bash
+gcloud run services update nexahire-ai \
+  --region asia-south1 \
+  --update-env-vars AI_PROVIDER=openai,MODEL=gpt-4.1-mini
+```
+
+### 8. Redeploy After Code Changes
+
+```bash
+gcloud run deploy nexahire-ai \
+  --source . \
+  --region asia-south1
+```
+
+The included `.gcloudignore` keeps local environments, secrets, caches, zips, git history, and unused large assets out of the deployment upload.
 
 ---
 
@@ -293,7 +483,24 @@ http://127.0.0.1:8000/
 GET /health
 ```
 
-Returns provider, model, API-key configuration status, and file parsing support.
+Returns backend status, selected default provider, default model, key availability, and resume parser support.
+
+### Verify AI Provider
+
+```http
+POST /api/ai/verify
+Content-Type: application/json
+```
+
+```json
+{
+  "provider": "openai",
+  "model": "gpt-4.1-mini",
+  "api_key": "optional_user_key"
+}
+```
+
+If `api_key` is empty, the server tries the configured environment key.
 
 ### Analyze Resume
 
@@ -302,27 +509,15 @@ POST /api/analyze-resume
 Content-Type: multipart/form-data
 ```
 
-Input:
+Form field:
 
-- `file`: PDF, DOCX, TXT, or DOC resume file.
+```text
+file=resume.pdf
+```
 
-Returns:
+Returns candidate scoring, skills, project analysis, graph data, recommendations, and recruiter notes.
 
-- Candidate score
-- Score breakdown
-- Skills
-- Strengths
-- Weaknesses
-- Projects
-- Career trajectory
-- Domain expertise
-- Education quality
-- Summary
-- Recommendations
-- Graph insights
-- Recruiter notes
-
-### Match Candidate To Job
+### Match Candidate
 
 ```http
 POST /api/match
@@ -345,7 +540,7 @@ Content-Type: application/json
 
 ```json
 {
-  "message": "Candidate answer or command",
+  "message": "Candidate answer",
   "role": "Software Engineer",
   "history": [],
   "difficulty": "medium"
@@ -399,32 +594,34 @@ Content-Type: application/json
 
 ---
 
-## Example Resume Analysis Output
+## Example Resume Analysis Response
 
 ```json
 {
-  "candidate_score": 85,
+  "candidate_score": 94,
   "experience_level": "senior",
   "score_breakdown": {
-    "skills_depth": 80,
-    "project_impact": 85,
-    "experience_alignment": 90,
-    "education_strength": 60,
-    "communication_signal": 70,
-    "growth_signal": 80
+    "skills_depth": 91,
+    "project_impact": 88,
+    "experience_alignment": 94,
+    "education_strength": 78,
+    "communication_signal": 86,
+    "growth_signal": 88
   },
   "skills": {
-    "technical": ["Python", "TypeScript", "FastAPI", "AWS"],
-    "soft": ["leadership", "mentoring"],
-    "tools": ["AWS", "FastAPI"]
+    "technical": ["Python", "FastAPI", "Machine Learning", "Cloud"],
+    "soft": ["communication", "ownership", "mentoring"],
+    "tools": ["Docker", "GCP", "GitHub"]
   },
-  "career_trajectory": "growing",
-  "summary": "Candidate shows strong AI engineering depth with measurable delivery impact.",
+  "career_trajectory": "strong upward progression",
+  "summary": "Cloud, ML systems, and product delivery align strongly with the target role.",
   "graph_insights": [
-    "Project impact and experience alignment are the strongest signals."
+    "Skills depth and experience alignment are the strongest hiring signals.",
+    "System design depth should be validated in interview."
   ],
   "recruiter_notes": [
-    "Validate system design depth during interview."
+    "Prepare architecture questions around distributed AI systems.",
+    "Outreach personalization is ready for review."
   ]
 }
 ```
@@ -435,108 +632,196 @@ Content-Type: application/json
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `OPENAI_API_KEY` | Yes | None | OpenAI API key used by the backend |
-| `MODEL` | No | `gpt-4.1-mini` | Chat model used for AI modules |
-| `MAX_TOKENS` | No | `2000` | Maximum model output tokens |
-| `CACHE_TTL` | No | `3600` | In-memory response cache duration in seconds |
+| `AI_PROVIDER` | No | `openai` | Default server provider: `openai` or `gemini` |
+| `OPENAI_API_KEY` | Optional | None | OpenAI key for server-side calls |
+| `GEMINI_API_KEY` | Optional | None | Gemini key for server-side calls |
+| `MODEL` | No | `gpt-4.1-mini` | Default OpenAI model |
+| `GEMINI_MODEL` | No | `gemini-2.0-flash` | Default Gemini model |
+| `MAX_TOKENS` | No | `2000` | Maximum output tokens |
+| `CACHE_TTL` | No | `3600` | Response cache duration in seconds |
+| `PORT` | No | `8000` locally, `8080` in container | HTTP port |
 
 ---
 
-## Security Notes
+## Production Notes
 
-- `.env` is gitignored.
-- API keys are used only by the backend.
-- No API key is shipped to the browser.
-- Resume files are parsed in memory for analysis.
-- The current cache is in-memory and resets when the server restarts.
-- Use HTTPS and stricter CORS rules before deploying publicly.
+### Security
 
----
+- Never commit `.env`.
+- Never paste real keys into `README.md`, frontend code, screenshots, or issue comments.
+- Use Google Secret Manager for production API keys.
+- Browser-entered keys stay in that user's browser storage and are sent only with AI requests.
+- Add authentication before storing candidate data for a real team.
+- Restrict CORS to trusted domains for production.
 
-## Design System
+### Scaling
 
-NexaHire uses a modern command-center interface:
+- Cloud Run can scale from zero.
+- Use at least `1Gi` memory for comfortable PDF/DOCX parsing.
+- Increase timeout for long resumes or slower model responses.
+- Add persistent storage if you want shared team profile history.
+- Add Firestore, Cloud SQL, or Cloud Storage for production candidate records.
 
-- Space Grotesk for display headlines.
-- Manrope for interface text.
-- Light and dark themes.
-- Google-inspired accent colors.
-- Glass panels with restrained borders.
-- Responsive grids for desktop and mobile.
-- Cinematic launch intro.
-- Accessible status labels and button states.
+### Cost Control
 
----
-
-## Deployment Notes
-
-For a production deployment:
-
-1. Set `OPENAI_API_KEY` as a server-side secret.
-2. Set `MODEL` to the preferred model.
-3. Serve behind HTTPS.
-4. Restrict CORS to trusted domains.
-5. Add persistent storage if user profiles or activity history need to sync across devices.
-6. Add authentication before exposing candidate data to teams.
-
-Example Cloud Run style command:
-
-```bash
-gcloud run deploy nexahire-ai \
-  --source . \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --set-env-vars MODEL=gpt-4.1-mini
-```
-
-Set the API key through your cloud secret manager rather than writing it into deployment commands.
+- Prefer `gpt-4.1-mini` or `gemini-2.0-flash` for everyday testing.
+- Use stronger models only for final analysis or high-value workflows.
+- Keep `MAX_TOKENS` reasonable.
+- Use the built-in cache to reduce repeated AI calls during demos.
 
 ---
 
 ## Troubleshooting
 
-### The app opens but AI calls fail
+### App Opens But AI Calls Fail
 
-Check that `.env` contains:
+Check:
 
-```env
-OPENAI_API_KEY=your_openai_api_key_here
+```bash
+curl http://127.0.0.1:8000/health
 ```
 
-Then restart the server.
+If `api_key_configured` is `false`, add a key in `.env` or use the in-app AI model access panel.
 
-### The health endpoint says the key is not configured
+### Gemini Quota Error
 
-Open:
+Gemini may return `RESOURCE_EXHAUSTED` when the selected model has no free-tier quota. Fix it by:
+
+- Switching to OpenAI in the AI settings panel.
+- Choosing another Gemini model.
+- Enabling billing or increasing quota in Google AI Studio.
+- Waiting for quota reset.
+
+### OpenAI Key Error
+
+Check:
+
+- The key is active.
+- Billing is enabled.
+- The selected model is available to your account.
+- The key was pasted without spaces.
+
+### Cloud Run Build Fails
+
+Read build logs:
+
+```bash
+gcloud builds list --limit 5
+gcloud builds log BUILD_ID
+```
+
+Confirm these files are present:
 
 ```text
-http://127.0.0.1:8000/health
+Dockerfile
+requirements.txt
+backend/app.py
+index.html
+style.css
+script.js
 ```
 
-If `api_key_configured` is `false`, the server did not load the key. Confirm the `.env` file is in the project root.
+### Cloud Run Service Starts But Shows 503
 
-### Resume upload works but graph looks empty
+Check logs:
 
-The graph depends on the AI response fields. Re-run the analysis with a resume that contains skills, projects, experience, and education details.
+```bash
+gcloud run services logs read nexahire-ai \
+  --region asia-south1 \
+  --limit 100
+```
 
-### API quota or billing errors
+Most common causes:
 
-Check your OpenAI usage limits and billing status in the OpenAI dashboard.
+- Missing `PORT` handling.
+- Missing dependency in `requirements.txt`.
+- Invalid environment variable.
+- Secret not attached to the service.
+
+### Resume Upload Fails
+
+Check that the file is one of:
+
+```text
+PDF, DOCX, TXT, DOC
+```
+
+For scanned image-only PDFs, OCR is not included yet.
+
+---
+
+## Useful Commands
+
+Run local server:
+
+```bash
+python backend/app.py
+```
+
+Run with Uvicorn:
+
+```bash
+uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Check backend health:
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+Verify OpenAI through API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/ai/verify \
+  -H "Content-Type: application/json" \
+  -d "{\"provider\":\"openai\",\"model\":\"gpt-4.1-mini\",\"api_key\":\"\"}"
+```
+
+Verify Gemini through API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/ai/verify \
+  -H "Content-Type: application/json" \
+  -d "{\"provider\":\"gemini\",\"model\":\"gemini-2.0-flash\",\"api_key\":\"\"}"
+```
+
+Check Python syntax:
+
+```bash
+python -m py_compile backend/app.py
+```
 
 ---
 
 ## Roadmap
 
-- Candidate ranking board.
-- Saved candidate database.
+- Google OAuth for Gmail draft creation.
+- Google Calendar interview scheduling.
+- Google Drive resume import and report export.
+- Google Sheets shortlist sync.
+- Candidate database and ranking board.
 - Team authentication.
-- Google Drive resume import.
-- Gmail draft creation through OAuth.
-- Calendar interview scheduling through OAuth.
+- PDF report generation.
 - Interview transcript export.
-- Multi-language resume analysis.
-- Role requirement monitor.
-- PDF report export.
+- Multi-language resume support.
+- Live role monitoring with scheduled refresh.
+- Admin analytics for recruiting teams.
+
+---
+
+## Deployment Summary
+
+For GCP, the recommended production path is:
+
+1. Add API keys to Secret Manager.
+2. Deploy with Cloud Run from source.
+3. Use `--set-secrets` for `OPENAI_API_KEY` and `GEMINI_API_KEY`.
+4. Use `--set-env-vars` for provider/model defaults.
+5. Verify `/health`.
+6. Watch logs with `gcloud run services logs read`.
+
+NexaHire is ready for local demos, Docker runs, and Cloud Run deployment.
 
 ---
 
@@ -544,8 +829,3 @@ Check your OpenAI usage limits and billing status in the OpenAI dashboard.
 
 MIT License.
 
----
-
-## Tagline
-
-NexaHire AI turns hiring data into explainable action: analyze better, match smarter, interview clearer, write fairer, and reach candidates faster.

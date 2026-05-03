@@ -1,6 +1,6 @@
 """
 NexaHire AI - Backend API Server
-FastAPI backend with OpenAI ChatGPT integration.
+FastAPI backend with OpenAI and Gemini provider support.
 """
 
 import hashlib
@@ -10,12 +10,13 @@ import os
 import pathlib
 import re
 import urllib.error
+import urllib.parse
 import urllib.request
 import time
 from datetime import datetime
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -36,14 +37,20 @@ except ImportError:
 load_dotenv(dotenv_path=pathlib.Path(__file__).parent / ".env", override=True)
 load_dotenv(override=True)
 
+DEFAULT_PROVIDER = (os.getenv("AI_PROVIDER", "openai") or "openai").lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or os.getenv("CHATGPT_API_KEY", "")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
 MODEL = os.getenv("MODEL", "gpt-4.1-mini")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2000"))
 CACHE_TTL = int(os.getenv("CACHE_TTL", "3600"))
 OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
 
 if not OPENAI_API_KEY:
-    print("WARNING: OPENAI_API_KEY not set. API calls will fail.")
+    print("WARNING: OPENAI_API_KEY not set. OpenAI calls need a browser key or server env key.")
+if not GEMINI_API_KEY:
+    print("WARNING: GEMINI_API_KEY not set. Gemini calls need a browser key or server env key.")
 
 _cache = {}
 
@@ -103,13 +110,82 @@ class CoachRequest(BaseModel):
     experience_level: str = "mid"
 
 
-async def ask_ai(system: str, user: str, json_mode=True, temperature=0.7):
-    if not OPENAI_API_KEY:
+class AIConfigRequest(BaseModel):
+    provider: str = "openai"
+    model: str = ""
+    api_key: str = ""
+
+
+def normalize_provider(provider: str = "") -> str:
+    value = (provider or DEFAULT_PROVIDER or "openai").strip().lower()
+    if value in {"gemini", "google", "google-gemini"}:
+        return "gemini"
+    return "openai"
+
+
+def resolve_ai_config(request: Request | None = None, override: AIConfigRequest | None = None):
+    headers = request.headers if request else {}
+    provider = normalize_provider(
+        (override.provider if override else "")
+        or headers.get("x-ai-provider")
+        or DEFAULT_PROVIDER
+    )
+
+    model = (
+        (override.model if override else "")
+        or headers.get("x-ai-model")
+        or (GEMINI_MODEL if provider == "gemini" else MODEL)
+    ).strip()
+
+    api_key = (
+        (override.api_key if override else "")
+        or headers.get("x-ai-key")
+        or (GEMINI_API_KEY if provider == "gemini" else OPENAI_API_KEY)
+    ).strip()
+
+    if not model:
+        model = GEMINI_MODEL if provider == "gemini" else MODEL
+
+    return {"provider": provider, "model": model, "api_key": api_key}
+
+
+def extract_gemini_text(data):
+    candidates = data.get("candidates") or []
+    if not candidates:
+        return ""
+    parts = (((candidates[0].get("content") or {}).get("parts")) or [])
+    return "".join(str(part.get("text", "")) for part in parts).strip()
+
+
+def parse_json_text(text):
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        return json.loads(match.group()) if match else {"error": "Parse failed", "raw": text}
+
+
+async def ask_ai(system: str, user: str, json_mode=True, temperature=0.7, config=None):
+    config = config or resolve_ai_config()
+    provider = config["provider"]
+    model = config["model"]
+    api_key = config["api_key"]
+
+    if not api_key:
+        raise HTTPException(status_code=500, detail=f"{provider.title()} API key is not configured")
+
+    if provider == "gemini":
+        return await ask_gemini(system, user, json_mode, temperature, model, api_key)
+    return await ask_openai(system, user, json_mode, temperature, model, api_key)
+
+
+async def ask_openai(system: str, user: str, json_mode=True, temperature=0.7, model=MODEL, api_key=OPENAI_API_KEY):
+    if not api_key:
         raise HTTPException(status_code=500, detail="OpenAI API key is not configured")
 
     try:
         payload = {
-            "model": MODEL,
+            "model": model,
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
@@ -124,7 +200,7 @@ async def ask_ai(system: str, user: str, json_mode=True, temperature=0.7):
             OPENAI_CHAT_URL,
             data=json.dumps(payload).encode("utf-8"),
             headers={
-                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
             },
             method="POST",
@@ -134,11 +210,7 @@ async def ask_ai(system: str, user: str, json_mode=True, temperature=0.7):
 
         text = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
         if json_mode:
-            try:
-                return json.loads(text)
-            except json.JSONDecodeError:
-                match = re.search(r"\{.*\}", text, re.DOTALL)
-                return json.loads(match.group()) if match else {"error": "Parse failed", "raw": text}
+            return parse_json_text(text)
         return {"response": text}
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="ignore")
@@ -149,6 +221,49 @@ async def ask_ai(system: str, user: str, json_mode=True, temperature=0.7):
         raise HTTPException(status_code=exc.code, detail=f"OpenAI Error: {message}")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"OpenAI Error: {str(exc)}")
+
+
+async def ask_gemini(system: str, user: str, json_mode=True, temperature=0.7, model=GEMINI_MODEL, api_key=GEMINI_API_KEY):
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Gemini API key is not configured")
+
+    try:
+        payload = {
+            "systemInstruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": MAX_TOKENS,
+                "responseMimeType": "application/json" if json_mode else "text/plain",
+            },
+        }
+        endpoint = GEMINI_API_URL.format(
+            model=urllib.parse.quote(model, safe=""),
+            key=urllib.parse.quote(api_key, safe=""),
+        )
+        request = urllib.request.Request(
+            endpoint,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=90) as response:
+            data = json.loads(response.read().decode("utf-8"))
+
+        text = extract_gemini_text(data)
+        if json_mode:
+            return parse_json_text(text)
+        return {"response": text}
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="ignore")
+        try:
+            error_data = json.loads(raw)
+            message = (error_data.get("error") or {}).get("message") or raw
+        except json.JSONDecodeError:
+            message = raw or exc.reason
+        raise HTTPException(status_code=exc.code, detail=f"Gemini Error: {message}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Gemini Error: {str(exc)}")
 
 
 def parse_file(file: UploadFile) -> str:
@@ -171,8 +286,8 @@ async def root():
     return {
         "status": "running",
         "service": "NexaHire AI",
-        "provider": "openai",
-        "model": MODEL,
+        "provider": DEFAULT_PROVIDER,
+        "model": GEMINI_MODEL if DEFAULT_PROVIDER == "gemini" else MODEL,
         "version": "1.0.0",
     }
 
@@ -181,21 +296,49 @@ async def root():
 async def health():
     return {
         "status": "healthy",
-        "provider": "openai",
-        "model": MODEL,
-        "api_key_configured": bool(OPENAI_API_KEY),
+        "provider": DEFAULT_PROVIDER,
+        "model": GEMINI_MODEL if DEFAULT_PROVIDER == "gemini" else MODEL,
+        "api_key_configured": bool(GEMINI_API_KEY if DEFAULT_PROVIDER == "gemini" else OPENAI_API_KEY),
+        "providers": {
+            "openai": bool(OPENAI_API_KEY),
+            "gemini": bool(GEMINI_API_KEY),
+        },
         "ts": datetime.now().isoformat(),
         "pdf": PDF_SUPPORT,
         "docx": DOCX_SUPPORT,
     }
 
 
+@app.post("/api/ai/verify")
+async def verify_ai(req: AIConfigRequest, request: Request):
+    config = resolve_ai_config(request, req)
+    if not config["api_key"]:
+        raise HTTPException(status_code=400, detail=f"{config['provider'].title()} API key is required")
+
+    result = await ask_ai(
+        "You verify AI model connectivity. Reply only with a short plain-text OK message.",
+        "Reply with: OK",
+        json_mode=False,
+        temperature=0,
+        config=config,
+    )
+
+    return {
+        "status": "ready",
+        "provider": config["provider"],
+        "model": config["model"],
+        "message": (result.get("response") or "OK").strip()[:120],
+        "verified_at": datetime.now().isoformat(),
+    }
+
+
 @app.post("/api/analyze-resume")
-async def analyze_resume(file: UploadFile = File(...)):
+async def analyze_resume(request: Request, file: UploadFile = File(...)):
+    config = resolve_ai_config(request)
     text = parse_file(file)
     if not text.strip():
         raise HTTPException(400, "Empty resume")
-    key = _ck("analyze", text)
+    key = _ck("analyze", config["provider"], config["model"], text)
     cached = _get(key)
     if cached:
         return cached
@@ -225,16 +368,17 @@ async def analyze_resume(file: UploadFile = File(...)):
   "recruiter_notes": ["specific screening note"]
 }
 Analyze depth, not just presence. Focus on growth potential, concrete evidence, and explainable scores."""
-    result = await ask_ai(system, f"Analyze this resume:\n\n{text}")
+    result = await ask_ai(system, f"Analyze this resume:\n\n{text}", config=config)
     _set(key, result)
     return result
 
 
 @app.post("/api/match")
-async def match(req: MatchRequest):
+async def match(req: MatchRequest, request: Request):
+    config = resolve_ai_config(request)
     if not req.resume_text.strip() or not req.job_description.strip():
         raise HTTPException(400, "Both fields required")
-    key = _ck("match", req.resume_text, req.job_description)
+    key = _ck("match", config["provider"], config["model"], req.resume_text, req.job_description)
     cached = _get(key)
     if cached:
         return cached
@@ -256,13 +400,14 @@ Return ONLY valid JSON:
   "explanation": "Detailed reasoning",
   "hiring_suggestion": "<strong_hire|hire|maybe|pass>"
 }"""
-    result = await ask_ai(system, f"RESUME:\n{req.resume_text}\n\nJOB:\n{req.job_description}")
+    result = await ask_ai(system, f"RESUME:\n{req.resume_text}\n\nJOB:\n{req.job_description}", config=config)
     _set(key, result)
     return result
 
 
 @app.post("/api/interview")
-async def interview(req: InterviewRequest):
+async def interview(req: InterviewRequest, request: Request):
+    config = resolve_ai_config(request)
     system = f"""You are an AI interviewer for {req.role}. Difficulty: {req.difficulty}.
 Be professional, adaptive, and encouraging. Return ONLY valid JSON:
 {{
@@ -294,14 +439,15 @@ If user wants to end, set interview_complete=true and populate final_score, metr
         history_lines.append(f"USER: {req.message}")
 
     transcript = "Conversation so far:\n" + "\n".join(history_lines)
-    return await ask_ai(system, transcript, json_mode=True, temperature=0.8)
+    return await ask_ai(system, transcript, json_mode=True, temperature=0.8, config=config)
 
 
 @app.post("/api/detect-bias")
-async def detect_bias(req: BiasRequest):
+async def detect_bias(req: BiasRequest, request: Request):
+    config = resolve_ai_config(request)
     if not req.job_description.strip():
         raise HTTPException(400, "Job description required")
-    key = _ck("bias", req.job_description)
+    key = _ck("bias", config["provider"], config["model"], req.job_description)
     cached = _get(key)
     if cached:
         return cached
@@ -316,13 +462,14 @@ Return ONLY valid JSON:
   "inclusivity_score": <0-100>,
   "summary": "Overall assessment"
 }"""
-    result = await ask_ai(system, f"Analyze for bias:\n\n{req.job_description}")
+    result = await ask_ai(system, f"Analyze for bias:\n\n{req.job_description}", config=config)
     _set(key, result)
     return result
 
 
 @app.post("/api/generate-outreach")
-async def outreach(req: OutreachRequest):
+async def outreach(req: OutreachRequest, request: Request):
+    config = resolve_ai_config(request)
     system = f"""You are an expert recruiter. Tone: {req.tone}. Create personalized outreach.
 Return ONLY valid JSON:
 {{
@@ -336,12 +483,14 @@ Return ONLY valid JSON:
     return await ask_ai(
         system,
         f"Candidate: {req.candidate_name}\nSkills: {req.candidate_skills}\nRole: {req.target_role}\nCompany: {req.company_name}",
+        config=config,
     )
 
 
 @app.post("/api/career-coach")
-async def coach(req: CoachRequest):
-    key = _ck("coach", req.current_skills, req.target_role)
+async def coach(req: CoachRequest, request: Request):
+    config = resolve_ai_config(request)
+    key = _ck("coach", config["provider"], config["model"], req.current_skills, req.target_role)
     cached = _get(key)
     if cached:
         return cached
@@ -358,7 +507,7 @@ async def coach(req: CoachRequest):
   "timeline": "",
   "motivation": ""
 }"""
-    result = await ask_ai(system, f"Skills: {req.current_skills}\nTarget: {req.target_role}\nLevel: {req.experience_level}")
+    result = await ask_ai(system, f"Skills: {req.current_skills}\nTarget: {req.target_role}\nLevel: {req.experience_level}", config=config)
     _set(key, result)
     return result
 
@@ -370,4 +519,5 @@ if (frontend / "index.html").exists():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port)
