@@ -758,6 +758,31 @@ async function apiCall(endpoint, body, isFormData = false) {
   }
 }
 
+async function runMarketInsights() {
+  const btn = document.getElementById("market-insights-btn");
+  const restore = setButtonLoading(btn, "Fetching from Gemini...");
+  
+  try {
+    const data = await apiCall("/api/market-insights", {
+      role: "Senior AI Engineer",
+      location: "Global"
+    });
+    
+    document.getElementById("market-insights-result").classList.remove("hidden");
+    document.getElementById("market-salary").textContent = data.average_salary || "N/A";
+    document.getElementById("market-demand").textContent = data.market_demand || "N/A";
+    document.getElementById("market-skills").innerHTML = renderTags(data.top_skills, "tag-cyan");
+    document.getElementById("market-trends").textContent = data.recent_trends || "No data.";
+    
+    toast("Market Insights loaded via Gemini.", "success");
+    saveActivity("Market Intel generated", `Fetched real-time data for Senior AI Engineer`, "home");
+  } catch (err) {
+    // Error handled by apiCall
+  } finally {
+    restore();
+  }
+}
+
 function escapeHtml(value) {
   const div = document.createElement("div");
   div.textContent = value == null ? "" : String(value);

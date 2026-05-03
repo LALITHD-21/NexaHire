@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1
 
@@ -9,6 +11,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
 COPY . .
+RUN chown -R appuser:appuser /app
+
+USER appuser
 
 # Expose port
 EXPOSE 8080

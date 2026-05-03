@@ -9,18 +9,23 @@ import json
 import os
 import pathlib
 import re
-import urllib.error
-import urllib.parse
-import urllib.request
 import time
 from datetime import datetime
+
+import httpx
+
+import logging
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 try:
     import PyPDF2
@@ -70,50 +75,60 @@ def _ck(*values):
     return hashlib.md5("|".join(str(x)[:500] for x in values).encode()).hexdigest()
 
 
-app = FastAPI(title="NexaHire AI", version="1.0.0")
+app = FastAPI(title="NexaHire AI", version="1.0.0", description="AI-powered recruiting platform.")
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=os.getenv("CORS_ORIGINS", "*").split(","),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "x-ai-provider", "x-ai-model", "x-ai-key"],
 )
 
 
 class MatchRequest(BaseModel):
-    resume_text: str
-    job_description: str
+    resume_text: str = Field(..., min_length=10, description="Candidate resume text")
+    job_description: str = Field(..., min_length=10, description="Job description text")
 
 
 class InterviewRequest(BaseModel):
-    message: str
-    role: str = "Software Engineer"
-    history: list = []
-    difficulty: str = "medium"
+    message: str = Field(..., min_length=1, description="User's input message")
+    role: str = Field(default="Software Engineer", max_length=100)
+    history: list = Field(default_factory=list)
+    difficulty: str = Field(default="medium", pattern="^(easy|medium|hard)$")
 
 
 class BiasRequest(BaseModel):
-    job_description: str
+    job_description: str = Field(..., min_length=10, description="Job description to analyze")
 
 
 class OutreachRequest(BaseModel):
-    candidate_name: str
-    candidate_skills: str
-    target_role: str
-    company_name: str = "Our Company"
-    tone: str = "professional"
+    candidate_name: str = Field(..., min_length=1, max_length=100)
+    candidate_skills: str = Field(..., min_length=1)
+    target_role: str = Field(..., min_length=1, max_length=100)
+    company_name: str = Field(default="Our Company", max_length=100)
+    tone: str = Field(default="professional", pattern="^(professional|casual|enthusiastic)$")
 
 
 class CoachRequest(BaseModel):
-    current_skills: str
-    target_role: str
-    experience_level: str = "mid"
+    current_skills: str = Field(..., min_length=1)
+    target_role: str = Field(..., min_length=1, max_length=100)
+    experience_level: str = Field(default="mid", pattern="^(junior|mid|senior|lead|executive)$")
 
 
 class AIConfigRequest(BaseModel):
-    provider: str = "openai"
-    model: str = ""
-    api_key: str = ""
+    provider: str = Field(default="openai")
+    model: str = Field(default="")
+    api_key: str = Field(default="")
+
+
+class EmbeddingRequest(BaseModel):
+    text: str = Field(..., min_length=2, description="Text to generate embeddings for")
+
+
+class MarketRequest(BaseModel):
+    role: str = Field(..., min_length=2, description="Target role to search")
+    location: str = Field(default="Global", description="Location to ground the search")
 
 
 def normalize_provider(provider: str = "") -> str:
@@ -196,29 +211,29 @@ async def ask_openai(system: str, user: str, json_mode=True, temperature=0.7, mo
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
 
-        request = urllib.request.Request(
-            OPENAI_CHAT_URL,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=90) as response:
-            data = json.loads(response.read().decode("utf-8"))
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            response = await client.post(
+                OPENAI_CHAT_URL,
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
 
         text = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
         if json_mode:
             return parse_json_text(text)
         return {"response": text}
-    except urllib.error.HTTPError as exc:
-        raw = exc.read().decode("utf-8", errors="ignore")
+    except httpx.HTTPStatusError as exc:
         try:
+            raw = exc.response.text
             message = (json.loads(raw).get("error") or {}).get("message") or raw
-        except json.JSONDecodeError:
-            message = raw or exc.reason
-        raise HTTPException(status_code=exc.code, detail=f"OpenAI Error: {message}")
+        except Exception:
+            message = exc.response.text or str(exc)
+        raise HTTPException(status_code=exc.response.status_code, detail=f"OpenAI Error: {message}")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"OpenAI Error: {str(exc)}")
 
@@ -228,40 +243,26 @@ async def ask_gemini(system: str, user: str, json_mode=True, temperature=0.7, mo
         raise HTTPException(status_code=500, detail="Gemini API key is not configured")
 
     try:
-        payload = {
-            "systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": user}]}],
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": MAX_TOKENS,
-                "responseMimeType": "application/json" if json_mode else "text/plain",
-            },
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        
+        generation_config = {
+            "temperature": temperature,
+            "max_output_tokens": MAX_TOKENS,
         }
-        endpoint = GEMINI_API_URL.format(
-            model=urllib.parse.quote(model, safe=""),
-            key=urllib.parse.quote(api_key, safe=""),
+        if json_mode:
+            generation_config["response_mime_type"] = "application/json"
+            
+        m = genai.GenerativeModel(
+            model_name=model,
+            system_instruction=system,
+            generation_config=generation_config
         )
-        request = urllib.request.Request(
-            endpoint,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=90) as response:
-            data = json.loads(response.read().decode("utf-8"))
-
-        text = extract_gemini_text(data)
+        response = await m.generate_content_async(user)
+        text = response.text
         if json_mode:
             return parse_json_text(text)
         return {"response": text}
-    except urllib.error.HTTPError as exc:
-        raw = exc.read().decode("utf-8", errors="ignore")
-        try:
-            error_data = json.loads(raw)
-            message = (error_data.get("error") or {}).get("message") or raw
-        except json.JSONDecodeError:
-            message = raw or exc.reason
-        raise HTTPException(status_code=exc.code, detail=f"Gemini Error: {message}")
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Gemini Error: {str(exc)}")
 
@@ -311,6 +312,9 @@ async def health():
 
 @app.post("/api/ai/verify")
 async def verify_ai(req: AIConfigRequest, request: Request):
+    """
+    Verify the AI configuration and API keys.
+    """
     config = resolve_ai_config(request, req)
     if not config["api_key"]:
         raise HTTPException(status_code=400, detail=f"{config['provider'].title()} API key is required")
@@ -330,6 +334,61 @@ async def verify_ai(req: AIConfigRequest, request: Request):
         "message": (result.get("response") or "OK").strip()[:120],
         "verified_at": datetime.now().isoformat(),
     }
+
+
+@app.post("/api/embedding")
+async def generate_embedding(req: EmbeddingRequest, request: Request):
+    """
+    Generate embeddings using Google Services (Gemini text-embedding-004).
+    """
+    config = resolve_ai_config(request)
+    if config["provider"] != "gemini":
+        raise HTTPException(400, "Embeddings currently require the Gemini provider.")
+    
+    if not config["api_key"]:
+        raise HTTPException(status_code=500, detail="Gemini API key is not configured")
+        
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=config["api_key"])
+        
+        result = genai.embed_content(
+            model="models/text-embedding-004",
+            content=req.text,
+            task_type="retrieval_document"
+        )
+        return {
+            "embedding": result['embedding'],
+            "model": "models/text-embedding-004",
+            "provider": "google-gemini",
+            "text_length": len(req.text)
+        }
+    except Exception as exc:
+        logger.error(f"Embedding failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Embedding Error: {str(exc)}")
+
+
+@app.post("/api/market-insights")
+async def market_insights(req: MarketRequest, request: Request):
+    """
+    Hackathon Winning Feature: Market Insights.
+    Uses Gemini to analyze real-time market demand, average salary, and top skills for a role.
+    """
+    config = resolve_ai_config(request)
+    
+    system = """You are an expert technical recruiter and labor market analyst. 
+Return ONLY valid JSON with this exact schema:
+{
+  "average_salary": "e.g., $120k - $160k",
+  "market_demand": "<High|Medium|Low>",
+  "top_skills": ["skill1", "skill2", "skill3"],
+  "recent_trends": "Short paragraph on hiring trends for this role",
+  "remote_flexibility": "<High|Medium|Low>",
+  "growth_projection": "e.g., 14% over 5 years"
+}"""
+    prompt = f"Analyze the current market for the role of '{req.role}' in the location '{req.location}'."
+    
+    return await ask_ai(system, prompt, json_mode=True, temperature=0.2, config=config)
 
 
 @app.post("/api/analyze-resume")

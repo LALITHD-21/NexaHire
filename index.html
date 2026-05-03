@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -47,7 +47,7 @@
 </div>
 
 <canvas id="particles-canvas" aria-hidden="true"></canvas>
-<div class="toast-container" id="toast-container" aria-live="polite"></div>
+<div class="toast-container" id="toast-container" aria-live="polite" role="status"></div>
 
 <svg width="0" height="0" aria-hidden="true">
   <defs>
@@ -59,7 +59,7 @@
   </defs>
 </svg>
 
-<nav class="sidebar" id="sidebar" aria-label="Primary navigation">
+<nav class="sidebar" id="sidebar" role="navigation" aria-label="Primary navigation">
   <button class="brand-mark" onclick="navigateTo('home')" aria-label="NexaHire AI home">
     <img src="assets/nexahire-mark.svg" alt="">
     <span>NexaHire</span>
@@ -80,14 +80,14 @@
   <button class="nav-item" data-page="outreach" id="nav-outreach"><span class="nav-icon">O</span><span>Outreach</span></button>
 </nav>
 
-<main class="main">
-  <header class="topbar">
+<main class="main" role="main">
+  <header class="topbar" role="banner">
     <div class="topbar-title">
       <p class="eyebrow gradient-eyebrow">Talent intelligence OS</p>
       <h1>Command <span>Center</span></h1>
     </div>
     <div class="command-box">
-      <input id="command-search" type="text" placeholder="Search modules and actions" autocomplete="off">
+      <input id="command-search" type="text" aria-label="Search modules and actions" placeholder="Search modules and actions" autocomplete="off">
       <div id="command-results" class="command-results hidden"></div>
     </div>
     <div class="topbar-actions">
@@ -238,11 +238,30 @@
     <div class="live-requirements">
       <div class="section-heading">
         <div>
-          <span class="eyebrow gradient-eyebrow">Live requirements</span>
-          <h3>Fresh role signals with official company links</h3>
+          <span class="eyebrow gradient-eyebrow">Market Intelligence</span>
+          <h3>Fresh role signals & real-time GenAI market data</h3>
         </div>
-        <div id="live-alert-ribbon" class="live-alert-ribbon"></div>
+        <button class="btn btn-primary" onclick="runMarketInsights()" id="market-insights-btn">Get Market Insights</button>
       </div>
+      
+      <div id="market-insights-result" class="result-section hidden glass" style="margin-bottom: 2rem;">
+        <h4>Gemini Market Insights</h4>
+        <div class="two-col" style="margin-top: 1rem;">
+          <div>
+            <strong>Average Salary:</strong> <span id="market-salary" class="tag tag-cyan"></span>
+          </div>
+          <div>
+            <strong>Market Demand:</strong> <span id="market-demand" class="tag tag-purple"></span>
+          </div>
+        </div>
+        <div style="margin-top: 1rem;">
+          <strong>Top Skills:</strong> <div id="market-skills" class="tag-cloud"></div>
+        </div>
+        <div style="margin-top: 1rem;">
+          <strong>Recent Trends:</strong> <p id="market-trends" class="muted"></p>
+        </div>
+      </div>
+
       <div id="live-jobs" class="live-jobs"></div>
     </div>
 
@@ -310,7 +329,7 @@
       <div class="drop-icon">RES</div>
       <h3>Drop resume here</h3>
       <p>Supports PDF, DOCX, TXT, and DOC files.</p>
-      <input type="file" id="file-input" accept=".pdf,.docx,.txt,.doc" hidden>
+      <input type="file" id="file-input" aria-label="Upload resume file" accept=".pdf,.docx,.txt,.doc" hidden>
     </div>
     <div class="progress-bar hidden" id="upload-progress"><div class="fill" id="upload-fill" style="width:0%"></div></div>
     <div id="analyze-result" class="result-section hidden">
@@ -392,12 +411,12 @@
     </div>
     <div class="two-col">
       <div class="form-group">
-        <label>Candidate Resume</label>
-        <textarea id="match-resume" rows="10" placeholder="Paste candidate resume text here..."></textarea>
+        <label for="match-resume">Candidate Resume</label>
+        <textarea id="match-resume" aria-label="Candidate Resume" rows="10" placeholder="Paste candidate resume text here..."></textarea>
       </div>
       <div class="form-group">
-        <label>Job Description</label>
-        <textarea id="match-job" rows="10" placeholder="Paste job description here..."></textarea>
+        <label for="match-job">Job Description</label>
+        <textarea id="match-job" aria-label="Job Description" rows="10" placeholder="Paste job description here..."></textarea>
       </div>
     </div>
     <div class="action-center">
@@ -467,8 +486,8 @@
         <div class="msg ai">Hello. Select a role and difficulty, then start the interview when you are ready.</div>
       </div>
       <div class="chat-input-area">
-        <input type="text" id="chat-input" placeholder="Type your answer..." disabled onkeydown="if(event.key==='Enter')sendMessage()">
-        <button class="btn btn-primary" id="chat-send-btn" onclick="sendMessage()" disabled>Send</button>
+        <input type="text" id="chat-input" aria-label="Type your answer" placeholder="Type your answer..." disabled onkeydown="if(event.key==='Enter')sendMessage()">
+        <button class="btn btn-primary" id="chat-send-btn" aria-label="Send message" onclick="sendMessage()" disabled>Send</button>
       </div>
     </div>
 
